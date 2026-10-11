@@ -1,15 +1,15 @@
 from typing import List
 from src.ports.inbound import SearchGamesQueryPort, GetGameDetailsQueryPort, FilterGamesByRelationsQueryPort
-from src.ports.outbound import CachePort, FullTextSearchPort, RelationalQueryPort, GameDocumentRepositoryPort
+from src.ports.outbound import CachePort, FullTextSearchPort, GraphQueryPort, GameDocumentRepositoryPort
 from src.ports.dtos import GameResponseDTO
 
 class GameQueryService(SearchGamesQueryPort, GetGameDetailsQueryPort, FilterGamesByRelationsQueryPort):
     """Обробка потоку запитів (Читання з кешуванням)"""
     def __init__(self, cache: CachePort, search: FullTextSearchPort, 
-                 relational_db: RelationalQueryPort, document_repo: GameDocumentRepositoryPort):
+                 graph_db: GraphQueryPort, document_repo: GameDocumentRepositoryPort):
         self.cache = cache
         self.search = search
-        self.relational_db = relational_db
+        self.graph_db = graph_db
         self.document_repo = document_repo
 
     def search_games(self, query: str) -> List[GameResponseDTO]:
@@ -21,8 +21,8 @@ class GameQueryService(SearchGamesQueryPort, GetGameDetailsQueryPort, FilterGame
         return [self.get_details(g_id) for g_id in game_ids]
 
     def filter_by_relations(self, platform_name: str, designer_name: str) -> List[GameResponseDTO]:
-        # Делегуємо запит до PostgreSQL
-        game_ids = self.relational_db.find_games_by_platform_and_designer(platform_name, designer_name)
+        # Делегуємо запит до Neo4j (обхід графа)
+        game_ids = self.graph_db.find_games_by_platform_and_designer(platform_name, designer_name)
         return [self.get_details(g_id) for g_id in game_ids]
 
     def get_details(self, game_id: int) -> GameResponseDTO:

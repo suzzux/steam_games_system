@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 from .value_objects import ReleaseDate, Price, AgeRestriction
 
@@ -38,3 +38,17 @@ class Game:
     designers: List[Designer]
     platforms: List[Platform]
     engine: Engine
+    game_trailer: str = ""
+    reviews: str = ""
+    dlc_count: int = 0
+    achievements: int = 0
+    estimated_owners: str = "0 - 20000"
+    peak_ccu: int = 0
+    positive: int = 0
+    negative: int = 0
+    recommendations: int = 0
+    average_playtime_forever: int = 0
+    median_playtime_2weeks: int = 0
+    categories: List[str] = field(default_factory=list)
+    supported_languages: List[str] = field(default_factory=list)
+    full_audio_languages: List[str] = field(default_factory=list)

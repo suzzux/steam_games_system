@@ -15,8 +15,8 @@ class FullTextSearchPort(ABC):
     @abstractmethod
     def search_by_text(self, text_query: str) -> List[int]: pass
 
-class RelationalQueryPort(ABC):
-    """PostgreSQL: Зв'язки сутностей (багато-до-багатьох)"""
+class GraphQueryPort(ABC):
+    """Neo4j: Зв'язки сутностей у вигляді графа (вузли та ребра)"""
     @abstractmethod
     def find_games_by_platform_and_designer(self, platform: str, designer: str) -> List[int]: pass
 
