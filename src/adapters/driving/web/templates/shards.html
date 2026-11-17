@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Розподіл колекції games між шардами</h1>
+<p class="muted">Ключ шардування: { _id: "hashed" } (game_id). Дані: $collStats через mongos, чанки: config.chunks.</p>
+<table>
+  <tr><th>Шард</th><th class="num">Документів</th><th class="num">Розмір, МБ</th><th class="num">Чанків</th><th>Частка</th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.shard }}</td><td class="num">{{ r.documents }}</td><td class="num">{{ r.size_mb }}</td>
+      <td class="num">{{ r.chunks }}</td>
+      <td><div class="bar" style="width: {{ (r.share * 300)|round|int }}px"></div>{{ '%.1f'|format(r.share * 100) }}%</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

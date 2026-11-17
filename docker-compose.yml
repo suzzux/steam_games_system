@@ -1,0 +1,169 @@
+# Повна система: шардований кластер MongoDB, Elasticsearch, Neo4j, Redis, Kafka і сервіси застосунку.
+# Запуск:            docker compose up -d --build
+# Завантаження даних: docker compose run --rm data-loader
+# Зупинка:           docker compose down        (дані лишаються у volume, логи - у ./logs)
+
+x-mongod: &mongod
+  image: mongo:7.0
+  restart: unless-stopped
+
+x-app: &app
+  build: .
+  image: steam-games-app
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    MONGO_URI: mongodb://mongos:27017
+    MONGO_DB: steam
+    ELASTIC_URL: http://elasticsearch:9200
+    NEO4J_URI: bolt://neo4j:7687
+    REDIS_URL: redis://redis:6379/0
+    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    LOG_FILE: /logs/app.log
+  volumes:
+    - ./logs:/logs
+
+services:
+  # ------------------------------------------------------------ MongoDB: config server
+  cfg1:
+    <<: *mongod
+    command: mongod --configsvr --replSet cfgrs --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [cfg1_data:/data/configdb]
+
+  # ------------------------------------------------------------ MongoDB: шард 1 (replica set з 3 вузлів)
+  shard1a:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard1 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard1a_data:/data/db]
+  shard1b:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard1 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard1b_data:/data/db]
+  shard1c:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard1 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard1c_data:/data/db]
+
+  # ------------------------------------------------------------ MongoDB: шард 2 (replica set з 3 вузлів)
+  shard2a:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard2 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard2a_data:/data/db]
+  shard2b:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard2 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard2b_data:/data/db]
+  shard2c:
+    <<: *mongod
+    command: mongod --shardsvr --replSet rs-shard2 --port 27017 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+    volumes: [shard2c_data:/data/db]
+
+  # ------------------------------------------------------------ MongoDB: маршрутизатор
+  mongos:
+    image: mongo:7.0
+    restart: unless-stopped
+    command: mongos --configdb cfgrs/cfg1:27017 --bind_ip_all --port 27017
+    ports: ["27017:27017"]
+    depends_on: [cfg1]
+
+  # одноразова ініціалізація replica set'ів і шардування
+  mongo-init:
+    image: mongo:7.0
+    restart: "no"
+    entrypoint: ["bash", "/scripts/init-cluster.sh"]
+    volumes: [./infra/mongo:/scripts:ro]
+    depends_on: [cfg1, shard1a, shard1b, shard1c, shard2a, shard2b, shard2c, mongos]
+
+  # ------------------------------------------------------------ інші сховища
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"      # тільки для локального запуску курсової
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports: ["9200:9200"]
+    volumes: [es_data:/usr/share/elasticsearch/data]
+
+  neo4j:
+    image: neo4j:5-community
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_max__size: 512m
+    ports: ["7474:7474", "7687:7687"]
+    volumes: [neo4j_data:/data]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports: ["6379:6379"]
+
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes: [kafka_data:/var/lib/kafka/data]
+
+  # ------------------------------------------------------------ сервіси застосунку (один образ, різні команди)
+  app-init:
+    <<: *app
+    restart: "no"
+    command: python -m src.entrypoints.init_storage
+    depends_on:
+      mongo-init: {condition: service_completed_successfully}
+      elasticsearch: {condition: service_started}
+      neo4j: {condition: service_started}
+      redis: {condition: service_started}
+
+  web:                       # api-gateway + command/query сервіси + UI
+    <<: *app
+    command: python -m src.entrypoints.web
+    ports: ["8000:8000"]
+    depends_on:
+      app-init: {condition: service_completed_successfully}
+      kafka: {condition: service_started}
+
+  sync-worker:
+    <<: *app
+    command: python -m src.entrypoints.sync_worker
+    depends_on:
+      app-init: {condition: service_completed_successfully}
+      kafka: {condition: service_started}
+
+  data-loader:               # запускається вручну: docker compose run --rm data-loader
+    <<: *app
+    restart: "no"
+    profiles: ["load"]
+    command: python -m src.entrypoints.load_dataset --csv /data/steam_games_processed.csv --batch 1000
+    volumes:
+      - ./logs:/logs
+      - ./data:/data:ro
+    depends_on:
+      app-init: {condition: service_completed_successfully}
+      kafka: {condition: service_started}
+
+volumes:
+  cfg1_data:
+  shard1a_data:
+  shard1b_data:
+  shard1c_data:
+  shard2a_data:
+  shard2b_data:
+  shard2c_data:
+  es_data:
+  neo4j_data:
+  kafka_data:

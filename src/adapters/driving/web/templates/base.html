@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Steam Games System{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <span class="logo">Steam Games System</span>
+  <nav>
+    {% set path = request.url.path %}
+    <a href="/games" class="{{ 'active' if path.startswith('/games') and path != '/games/new' }}">Каталог</a>
+    <a href="/search" class="{{ 'active' if path == '/search' }}">Пошук</a>
+    <a href="/filter" class="{{ 'active' if path == '/filter' }}">Фільтр за зв'язками</a>
+    <a href="/games/new" class="{{ 'active' if path == '/games/new' }}">Додати гру</a>
+    <a href="/shards" class="{{ 'active' if path == '/shards' }}">Шарди</a>
+    <a href="/analytics" class="{{ 'active' if path == '/analytics' }}">Map-Reduce</a>
+    <a href="/monitoring" class="{{ 'active' if path == '/monitoring' }}">Моніторинг</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ game.name }}{% endblock %}
+{% block content %}
+<h1>{{ game.name }}</h1>
+<p>
+  <a class="button light" href="/games/{{ game.game_id }}/edit">Редагувати</a>
+  <form method="post" action="/games/{{ game.game_id }}/delete" style="display:inline"
+        onsubmit="return confirm('Видалити гру?')"><button type="submit" class="light">Видалити</button></form>
+</p>
+{% if game.shard %}<div class="meta">Документ зберігається в шарді: <b>{{ game.shard }}</b></div>{% endif %}
+<dl class="card">
+  <dt>ID (game_id)</dt><dd>{{ game.game_id }}</dd>
+  <dt>Дата релізу</dt><dd>{{ game.release_date or 'ще не вийшла' }}</dd>
+  <dt>Ціна</dt><dd>${{ '%.2f'|format(game.price) }}</dd>
+  <dt>Віковий ценз</dt><dd>{{ game.required_age }}+</dd>
+  <dt>Жанри</dt><dd>{{ game.genres|join(', ') }}</dd>
+  <dt>Категорії</dt><dd>{{ game.categories|join(', ') }}</dd>
+  <dt>Розробники</dt><dd>{{ game.developers|join(', ') }}</dd>
+  <dt>Видавці</dt><dd>{{ game.publishers|join(', ') }}</dd>
+  <dt>Гейм-дизайнери</dt><dd>{{ game.designers|join(', ') }}</dd>
+  <dt>Платформи</dt><dd>{{ game.platforms|join(', ') }}</dd>
+  <dt>Рушій</dt><dd>{{ game.engine }}</dd>
+  <dt>Мови</dt><dd>{{ game.supported_languages|join(', ') }}</dd>
+  <dt>Озвучення</dt><dd>{{ game.full_audio_languages|join(', ') }}</dd>
+  <dt>Власники (оцінка)</dt><dd>{{ game.estimated_owners }}</dd>
+  <dt>Піковий онлайн</dt><dd>{{ game.peak_ccu }}</dd>
+  <dt>Відгуки</dt><dd>{{ game.positive }} позитивних / {{ game.negative }} негативних ({{ '%.0f'|format(game.positive_ratio * 100) }}%)</dd>
+  <dt>Середній час у грі, хв</dt><dd>{{ game.average_playtime_forever }}</dd>
+  <dt>Engagement score</dt><dd>{{ game.engagement_score }}</dd>
+  <dt>DLC / досягнення</dt><dd>{{ game.dlc_count }} / {{ game.achievements }}</dd>
+  <dt>Трейлер</dt><dd>{% if game.game_trailer %}<a href="{{ game.game_trailer }}" target="_blank">{{ game.game_trailer }}</a>{% endif %}</dd>
+</dl>
+<h2>Короткий опис</h2><p>{{ game.short_description }}</p>
+<h2>Повний опис</h2><p>{{ game.detailed_description }}</p>
+{% if game.reviews %}<h2>Відгуки</h2><p>{{ game.reviews }}</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ігри дизайнера на платформі</h1>
+<form class="filters" method="get" action="/filter">
+  <label>Гейм-дизайнер<input name="designer" size="30" value="{{ designer }}" required></label>
+  <label>Платформа
+    <select name="platform">{% for p in facets.platforms %}
+      <option {{ 'selected' if platform == p }}>{{ p }}</option>{% endfor %}</select></label>
+  <button type="submit">Знайти</button>
+</form>
+{% if result %}
+<div class="meta">Джерело списку ID: <b>{{ 'кеш Redis' if result.source == 'redis' else 'Neo4j (обхід графа)' }}</b>;
+  картки ігор: MongoDB; час: {{ result.elapsed_ms }} мс; знайдено: {{ result.items|length }}</div>
+{% set items = result.items %}{% include "_games_table.html" %}
+{% endif %}
+{% endblock %}

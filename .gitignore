@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Дані та логи курсової (великі файли не комітимо)
+data/*.csv
+logs/*.log

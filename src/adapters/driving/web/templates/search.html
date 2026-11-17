@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Повнотекстовий пошук</h1>
+<form class="filters" method="get" action="/search">
+  <label>Запит (назва, опис, відгуки)<input name="q" size="50" list="suggest" value="{{ q }}" autocomplete="off" id="q"></label>
+  <datalist id="suggest"></datalist>
+  <button type="submit">Шукати</button>
+</form>
+{% if result %}
+<div class="meta">Джерело списку ID: <b>{{ 'кеш Redis' if result.source == 'redis' else 'Elasticsearch' }}</b>;
+  картки ігор: MongoDB; час: {{ result.elapsed_ms }} мс; знайдено: {{ result.items|length }}</div>
+{% set items = result.items %}{% include "_games_table.html" %}
+{% endif %}
+<script>
+// автодоповнення назви: /api/autocomplete -> Elasticsearch (search_as_you_type)
+const input = document.getElementById('q'), list = document.getElementById('suggest');
+let timer = null;
+input.addEventListener('input', () => {
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    if (input.value.trim().length < 2) return;
+    const r = await fetch('/api/autocomplete?prefix=' + encodeURIComponent(input.value));
+    const names = r.ok ? await r.json() : [];
+    list.innerHTML = names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">`).join('');
+  }, 200);
+});
+</script>
+{% endblock %}

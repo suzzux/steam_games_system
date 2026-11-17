@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Редагування гри' if game else 'Нова гра' }}</h1>
+<p class="muted">Списки (жанри, студії, платформи...) вводяться через кому. Після збереження документ пишеться в MongoDB,
+а Elasticsearch і Neo4j оновлюються через подію в Kafka із невеликою затримкою.</p>
+<form method="post" action="{{ action }}">
+<div class="form-grid">
+  <label>Назва *</label><input name="name" required value="{{ game.name if game }}">
+  <label>Дата релізу (YYYY-MM-DD)</label><input name="release_date" value="{{ game.release_date if game }}">
+  <label>Ціна, $</label><input name="price" type="number" step="0.01" min="0" value="{{ game.price if game else 0 }}">
+  <label>Віковий ценз</label><input name="min_age" type="number" min="0" max="21" value="{{ game.required_age if game else 0 }}">
+  <label>Жанри</label><input name="genres" value="{{ game.genres|join(', ') if game }}">
+  <label>Розробники</label><input name="developers" value="{{ game.developers|join(', ') if game }}">
+  <label>Видавці</label><input name="publishers" value="{{ game.publishers|join(', ') if game }}">
+  <label>Гейм-дизайнери</label><input name="designers" value="{{ game.designers|join(', ') if game }}">
+  <label>Платформи</label><input name="platforms" value="{{ game.platforms|join(', ') if game }}">
+  <label>Рушій</label><input name="engine" value="{{ game.engine if game }}">
+  <label>Трейлер (URL)</label><input name="game_trailer" value="{{ game.game_trailer if game }}">
+  <label>Короткий опис</label><textarea name="short_description" rows="2">{{ game.short_description if game }}</textarea>
+  <label>Повний опис</label><textarea name="detailed_description" rows="6">{{ game.detailed_description if game }}</textarea>
+</div>
+<p><button type="submit">Зберегти</button></p>
+</form>
+{% endblock %}

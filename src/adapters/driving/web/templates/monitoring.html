@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Моніторинг</h1>
+<p class="muted">Атомарні лічильники Redis (INCR). Сторінка оновлюється кожні 5 секунд.</p>
+<table>
+  <tr><th>Лічильник</th><th class="num">Значення</th></tr>
+  {% for key, value in data.counters.items() %}<tr><td>{{ key }}</td><td class="num">{{ value }}</td></tr>
+  {% else %}<tr><td colspan="2" class="muted">Лічильників ще немає</td></tr>{% endfor %}
+</table>
+<script>setTimeout(() => location.reload(), 5000);</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Map-Reduce по шардах</h1>
+<form class="filters" method="get" action="/analytics">
+  <input type="hidden" name="run" value="1">
+  <label>Групувати за
+    <select name="group_by">{% for value, title in group_fields %}
+      <option value="{{ value }}" {{ 'selected' if params.group_by == value }}>{{ title }}</option>{% endfor %}</select></label>
+  <label>Рік від<input name="year_from" size="5" value="{{ params.year_from or '' }}"></label>
+  <label>Рік до<input name="year_to" size="5" value="{{ params.year_to or '' }}"></label>
+  <label>Платформа
+    <select name="platform"><option value="">усі</option>{% for p in facets.platforms %}
+      <option {{ 'selected' if params.platform == p }}>{{ p }}</option>{% endfor %}</select></label>
+  <label>Кількість рядків<input name="top_n" size="4" value="{{ params.top_n }}"></label>
+  <button type="submit">Виконати</button>
+</form>
+{% if result %}
+<h2>Етап map: часткові результати шардів</h2>
+<table>
+  <tr><th>Шард</th><th class="num">Документів після фільтра</th><th class="num">Груп</th><th class="num">Час, мс</th></tr>
+  {% for s in result.shards %}
+  <tr><td>{{ s.shard }}</td><td class="num">{{ s.matched_docs }}</td><td class="num">{{ s.groups }}</td><td class="num">{{ s.elapsed_ms }}</td></tr>
+  {% endfor %}
+</table>
+<h2>Етап reduce: об'єднаний результат</h2>
+<div class="meta">Усього груп: {{ result.total_groups }}; загальний час: {{ result.elapsed_ms }} мс;
+  перевірка через mongos: <b>{{ 'збігається' if result.verified else ('не збігається' if result.verified is not none else 'не виконувалась') }}</b></div>
+<table>
+  <tr><th>Значення</th><th class="num">Ігор</th><th class="num">Середня ціна, $</th><th class="num">Позитивні відгуки, %</th>
+      <th class="num">Макс. піковий онлайн</th><th class="num">Безкоштовні, %</th></tr>
+  {% for r in result.rows %}
+  <tr><td>{{ r.key }}</td><td class="num">{{ r.games }}</td><td class="num">{{ '%.2f'|format(r.avg_price) }}</td>
+      <td class="num">{{ '%.1f'|format(r.positive_ratio * 100) }}</td><td class="num">{{ r.max_peak_ccu }}</td>
+      <td class="num">{{ '%.1f'|format(r.free_share * 100) }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

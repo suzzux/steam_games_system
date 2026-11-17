@@ -1,0 +1,18 @@
+<table>
+  <tr><th class="num">ID</th><th>Назва</th><th>Дата релізу</th><th class="num">Ціна, $</th>
+      <th>Жанри</th><th>Розробники</th><th>Платформи</th><th class="num">Позитивні, %</th></tr>
+  {% for g in items %}
+  <tr>
+    <td class="num">{{ g.game_id }}</td>
+    <td><a href="/games/{{ g.game_id }}">{{ g.name }}</a></td>
+    <td>{{ g.release_date or 'ще не вийшла' }}</td>
+    <td class="num">{{ '%.2f'|format(g.price) }}</td>
+    <td>{{ g.genres|join(', ') }}</td>
+    <td>{{ g.developers|join(', ') }}</td>
+    <td>{{ g.platforms|join(', ') }}</td>
+    <td class="num">{{ '%.0f'|format(g.positive_ratio * 100) }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="muted">Записів не знайдено</td></tr>
+  {% endfor %}
+</table>

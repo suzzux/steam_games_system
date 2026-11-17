@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Каталог ігор</h1>
+<form class="filters" method="get" action="/games">
+  <label>Назва починається з<input name="name_prefix" value="{{ raw.get('name_prefix', '') }}"></label>
+  <label>Жанр
+    <select name="genre"><option value="">усі</option>
+      {% for g in facets.genres %}<option {{ 'selected' if raw.get('genre') == g }}>{{ g }}</option>{% endfor %}
+    </select></label>
+  <label>Платформа
+    <select name="platform"><option value="">усі</option>
+      {% for p in facets.platforms %}<option {{ 'selected' if raw.get('platform') == p }}>{{ p }}</option>{% endfor %}
+    </select></label>
+  <label>Рік від<input name="year_from" size="5" value="{{ raw.get('year_from', '') }}"></label>
+  <label>Рік до<input name="year_to" size="5" value="{{ raw.get('year_to', '') }}"></label>
+  <label>Ціна до, $<input name="max_price" size="6" value="{{ raw.get('max_price', '') }}"></label>
+  <label>Сортування
+    <select name="sort">{% for value, title in sort_options %}
+      <option value="{{ value }}" {{ 'selected' if filters.sort == value }}>{{ title }}</option>{% endfor %}
+    </select></label>
+  <button type="submit">Показати</button>
+  <a class="button light" href="/games">Скинути</a>
+</form>
+<p class="muted">Знайдено записів: {{ page.total }}. Сторінка {{ page.page }} з {{ page.pages }}. Джерело: MongoDB (колекція games).</p>
+{% set items = page.items %}{% include "_games_table.html" %}
+<div class="pager">
+  {% if page.page > 1 %}<a href="/games?{{ query|urlencode }}&page={{ page.page - 1 }}">&larr; Попередня</a>{% endif %}
+  <span>{{ page.page }} / {{ page.pages }}</span>
+  {% if page.page < page.pages %}<a href="/games?{{ query|urlencode }}&page={{ page.page + 1 }}">Наступна &rarr;</a>{% endif %}
+</div>
+{% endblock %}
